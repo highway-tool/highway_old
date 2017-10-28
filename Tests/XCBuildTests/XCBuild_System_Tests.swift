@@ -31,11 +31,10 @@ final class XCBuildTests: XCTestCase {
     }
     
     // MARK: - Helper
-    let fixturesDir = URL(fileURLWithPath: #file).deletingLastPathComponent().appendingPathComponent("Fixtures")
+    let fixturesDir = Absolute(URL(fileURLWithPath: #file).deletingLastPathComponent().appendingPathComponent("Fixtures"))
     let system = LocalSystem.local()
     let fs = LocalFileSystem()
     var credentials: Credentials = Credentials(username: "", password: "")
-    
     struct Credentials { let username: String; let password: String }
     private func retrieveCredentials() throws -> Credentials {
         let keychain = Keychain(system: LocalSystem.local())
@@ -49,55 +48,36 @@ final class XCBuildTests: XCTestCase {
             throw error
         }
     }
-    private func incrementBuildNumber(plistUrl: URL) throws {
-        let data = try Data(contentsOf: plistUrl)
-        let rawList = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
-        guard let _list = rawList as? [String:Any] else {
-            throw "wrong format"
-        }
-        var list = _list
-        guard let rawBuildNumber = list["CFBundleVersion"] as? String else {
-            throw "CFBundleVersion not found or no string"
-        }
-        
-        guard let buildNumber = Int(rawBuildNumber) else {
-            throw "CFBundleVersion not found or no string"
-        }
-        
-        let newNumber = String(buildNumber + 1)
-        list["CFBundleVersion"] = newNumber
-        let newData = try PropertyListSerialization.data(fromPropertyList: list, format: .xml, options: 0)
-        try newData.write(to: plistUrl)
-        
-    }
+
     // MARK: - Tests
     func test_test_action() throws {
         let provider = SystemExecutableProvider.local()
         provider.searchedUrls += ["/usr/local/bin/"] // a bit hacky - but that enables xcpretty
         system.executableProvider = provider
-        let projectRoot = fixturesDir.appendingPathComponent("highwayiostest_objc")
-        let projectUrl = projectRoot.appendingPathComponent("highwayiostest.xcodeproj")
+        let projectRoot = fixturesDir.appending("highwayiostest_objc")
+        let projectUrl = projectRoot.appending("highwayiostest.xcodeproj")
 
         var options = TestOptions()
-        options.project = projectUrl.path
+        options.project = projectUrl
         options.scheme = "highwayiostest"
         
         let xcbuild = XCBuild(system: system, fileSystem: LocalFileSystem(), ui: Terminal.shared)
         let result = try xcbuild.buildAndTest(using: options)
         print(result)
     }
+    
     func testArchive_and_Export_using_object_plist() throws {
-        let projectRoot = fixturesDir.appendingPathComponent("highwayiostest_objc")
-        let infoPlistUrl = fixturesDir.appendingPathComponent("highwayiostest/highwayiostest/Info.plist")
-        try incrementBuildNumber(plistUrl: infoPlistUrl)
-        let projectUrl = projectRoot.appendingPathComponent("highwayiostest.xcodeproj")
-        
+        let projectRoot = fixturesDir.appending("highwayiostest_objc")
+        let build = XCBuild(system: system, fileSystem: fs, ui: Terminal.shared)
+
+        let projectUrl = projectRoot.appending("highwayiostest.xcodeproj")
+        try build.incrementBuildNumber(project: projectUrl, scheme: "highwayiostest")
+
         var options = ArchiveOptions()
         options.scheme = "highwayiostest"
-        options.project = Absolute(projectUrl)
+        options.project = projectUrl
         options.archivePath = try fs.uniqueTemporaryDirectoryUrl().appending("uud.xcarchive")
         
-        let build = XCBuild(system: system, fileSystem: fs, ui: Terminal.shared)
         try build.archive(using: options)
         
         var exportArchiveOptions = ExportArchiveOptions()
@@ -122,24 +102,22 @@ final class XCBuildTests: XCTestCase {
     }
     
     func testArchive_and_Export_using_file_plist() throws {
-        let projectRoot = fixturesDir.appendingPathComponent("highwayiostest_objc")
-        let infoPlistUrl = fixturesDir.appendingPathComponent("highwayiostest/highwayiostest/Info.plist")
-        try incrementBuildNumber(plistUrl: infoPlistUrl)
-        let projectUrl = projectRoot.appendingPathComponent("highwayiostest.xcodeproj")
-        
+        let projectRoot = fixturesDir.appending("highwayiostest_objc")
+        let projectUrl = projectRoot.appending("highwayiostest.xcodeproj")
+        let build = XCBuild(system: system, fileSystem: fs, ui: Terminal.shared)
+        try build.incrementBuildNumber(project: projectUrl, scheme: "highwayiostest")
+
         var options = ArchiveOptions()
         options.scheme = "highwayiostest"
-        options.project = Absolute(projectUrl)
+        options.project = projectUrl
         options.destination = Destination.device(.iOS, name: nil, isGeneric: true, id: nil)
         options.archivePath = try fs.uniqueTemporaryDirectoryUrl().appending("uud.xcarchive")
         
-        let build = XCBuild(system: system, fileSystem: fs, ui: Terminal.shared)
         try build.archive(using: options)
         
         var exportArchiveOptions = ExportArchiveOptions()
         exportArchiveOptions.archivePath = options.archivePath
         exportArchiveOptions.exportPath = try fs.uniqueTemporaryDirectoryUrl()
-        
         
         let plistUrl = Absolute(URL(fileURLWithPath: #file)
             .deletingLastPathComponent()

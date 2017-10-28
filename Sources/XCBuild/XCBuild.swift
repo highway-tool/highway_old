@@ -24,6 +24,79 @@ public final class XCBuild {
         Terminal.shared.verbose = true
     }
     
+    // MARK: - Incrementing the Build Number
+    public struct BuildNumber {
+        public var previous: String
+        public var current: String
+    }
+    
+    @discardableResult
+    public func incrementBuildNumber(project: Absolute, scheme: String) throws -> BuildNumber {
+        let plistUrl = try infoPlistUrl(project: project, scheme: scheme)
+        let data = try fileSystem.data(at: plistUrl)
+        let rawList = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
+        guard let _list = rawList as? [String:Any] else {
+            throw "wrong format"
+        }
+        var list = _list
+        guard let rawBuildNumber = list["CFBundleVersion"] as? String else {
+            throw "CFBundleVersion not found or no string"
+        }
+        
+        guard let buildNumber = Int(rawBuildNumber) else {
+            throw "CFBundleVersion not found or no string"
+        }
+        
+        let newNumber = String(buildNumber + 1)
+        list["CFBundleVersion"] = newNumber
+        let newData = try PropertyListSerialization.data(fromPropertyList: list, format: .xml, options: 0)
+        try fileSystem.writeData(newData, to: plistUrl)
+        return BuildNumber(previous: rawBuildNumber, current: newNumber)
+    }
+    
+    private func infoPlistUrl(project: Absolute, scheme: String) throws -> Absolute {
+        let settings = try buildSettings(project: project, scheme: scheme)
+        
+        // This can be absolute (/xxxx) or relative (../xxxx or just xxxx) - (god help if its nil)
+        guard let rawPath = settings["INFOPLIST_FILE"] else {
+            throw "Failed to determine location of Info.plist. No 'INFOPLIST_FILE' found in build settings."
+        }
+        
+        return Absolute(path: rawPath, relativeTo: project.parent)
+    }
+    
+    // MARK: - Getting Build Settings
+    public func buildSettings(project: Absolute, scheme: String) throws -> [String : String] {
+        let task = try _xcodebuild().dematerialize()
+        task.arguments += _option("showBuildSettings")
+        task.arguments += _option("scheme", value: scheme)
+        task.arguments += _option("project", value: project.path)
+        task.enableReadableOutputDataCapturing()
+
+        try system.execute(task).assertSuccess()
+        guard let output = task.trimmedOutput else {
+            throw "Failed to get build settings. xcodebuild returned without errors but no output."
+        }
+        
+        typealias Pair = (String, String)
+        // Build settings for action build and target highwayiostest:
+        //    ACTION = build
+        let lines = output.trimmedLines
+        let pairs: [Pair] = lines.flatMap { line in
+            let components = line.components(separatedBy: " = ")
+            guard components.count == 2 else {
+                return nil
+            }
+            let key = components[0]
+            let value = components[1]
+            return (key: key, value: value)
+        }
+        
+        let env:[String:String] = Dictionary(pairs, uniquingKeysWith: { (_, new) in new  })
+        return env
+    }
+
+    
     // MARK: - Archiving
     @discardableResult
     public func archive(using options: ArchiveOptions) throws -> Archive {
@@ -41,7 +114,16 @@ public final class XCBuild {
     
     private func _archiveTask(using options: ArchiveOptions) throws -> Result<Task, TaskCreationError> {
         let result = _xcodebuild()
-        result.value?.arguments += options.arguments
+        let task = try result.dematerialize()
+        task.arguments += options.arguments
+        switch options.logDestination {
+            
+        case .standardStream: ()
+            // do nothing
+        case .file(let logFile):
+            let logHandle = try FileHandle(forWritingTo: logFile.url)
+            task.output = .init(logHandle)
+        }
         return result
     }
     
@@ -95,9 +177,14 @@ public final class XCBuild {
             ui.error("Unable to detect destionation. Got no output from xcodebuild.")
             return nil
         }
-        ui.verbose("xcodebuild output:\n\n\(output)")
-        return try Destination.destinations(xcbuildOutput: output).first
+        guard let destination = Destination.destinations(xcbuildOutput: output).first else {
+            ui.error("Failed to detect destination. xcodebuild used to detect the destination:\n\n\(output)")
+            return nil
+        }
+        ui.verbose("Detected destination: \(destination.asString)")
+        return destination
     }
+    
     
     private func _buildTestTask(using options: TestOptions) -> Result<Task, TaskCreationError> {
         let result = _xcodebuild()
@@ -114,32 +201,36 @@ public final class XCBuild {
 }
 
 fileprivate struct XCodeBuildOption {
-    fileprivate init(name: String, value: String?) {
+    fileprivate init(name: String, value: String?, ignoresOptionWithoutValue: Bool = false) {
         self.name = name
         self.value = value
+        self.ignoresOptionWithoutValue = ignoresOptionWithoutValue
     }
     fileprivate let name: String
     fileprivate var value: String?
+    fileprivate var ignoresOptionWithoutValue: Bool
 }
 
 extension XCodeBuildOption: ArgumentsConvertible {
     func arguments() -> Arguments? {
-        guard let value = value else { return nil }
-        return Arguments(["-" + name, value])
+        if ignoresOptionWithoutValue && value == nil {
+            return nil
+        }
+        return Arguments(["-" + name, value ?? ""])
     }
 }
 
-private func _option(_ name: String, value: String?) -> XCodeBuildOption {
+private func _option(_ name: String, value: String? = nil) -> XCodeBuildOption {
     return XCodeBuildOption(name: name, value: value)
 }
-private func _option(_ name: String, value: Int?) -> XCodeBuildOption {
+private func _intOption(_ name: String, value: Int?) -> XCodeBuildOption {
     let stringValue: String?
     if let value = value {
         stringValue = String(value)
     } else {
         stringValue = nil
     }
-    return XCodeBuildOption(name: name, value: stringValue)
+    return XCodeBuildOption(name: name, value: stringValue, ignoresOptionWithoutValue: true)
 }
 
 fileprivate extension ArchiveOptions {
@@ -168,9 +259,9 @@ fileprivate extension TestOptions {
     var arguments: Arguments {
         var args = Arguments.empty
         args += _option("scheme", value: scheme)
-        args += _option("project", value: project)
+        args += _option("project", value: project?.path)
         args += _option("destination", value: destination.map { "\($0.asString)" })
-        args += _option("destination-timeout", value: destinationTimeout)
+        args += _intOption("destination-timeout", value: destinationTimeout)
         args.append(["build", "test"])
         return args
     }

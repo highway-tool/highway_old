@@ -4,12 +4,6 @@ import Arguments
 
 infix operator ==>
 
-public enum PrivateHighway {
-    public static let listPublicHighwaysAsJSON = "listPublicHighwaysAsJSON"
-}
-
-
-
 open class _Highway<T: RawRepresentable> where T.RawValue == String {
     // MARK: - Types
     public typealias ErrorHandler = (Error) -> ()
@@ -121,9 +115,12 @@ open class _Highway<T: RawRepresentable> where T.RawValue == String {
         }
     }
     
+    open func didFinishLaunching(with invocation: Invocation) { }
+    
     public func go(_ invocationProvider: InvocationProvider = CommandLineInvocationProvider()) {
         let invocation = invocationProvider.invocation()
         verbose = invocation.verbose
+        didFinishLaunching(with: invocation)
 
         // Empty?
         if invocation.representsEmptyInvocation {
@@ -131,12 +128,6 @@ open class _Highway<T: RawRepresentable> where T.RawValue == String {
             return
         }
         
-        // Private
-        if invocation.highway == PrivateHighway.listPublicHighwaysAsJSON {
-            try? _listPublicHighwaysAsJSON()
-            return
-        }
-
         // Remaining highways
         let highwayName = invocation.highway
         guard let highway = _highways[highwayName] else {
@@ -149,12 +140,6 @@ open class _Highway<T: RawRepresentable> where T.RawValue == String {
         } catch {
             // Do not rethrow or report the error because _handle did that already
         }
-    }
-    
-    private func _listPublicHighwaysAsJSON() throws {
-        let text = try descriptions.jsonString()
-        Swift.print(text, separator: "", terminator: "\n")
-        fflush(stdout)
     }
 }
 

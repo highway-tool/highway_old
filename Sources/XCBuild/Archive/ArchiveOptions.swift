@@ -18,8 +18,15 @@ public struct ArchiveOptions {
     // Type: path
     // Notes: Directory at archivePath must not exist already.
     public var archivePath: Absolute?
+    
+    public var logDestination = LogDestination.standardStream
 }
 
 public enum ArchivePlatform: String {
     case macOS, iOS, tvOS
+}
+
+public enum LogDestination {
+    case standardStream
+    case file(Absolute)
 }

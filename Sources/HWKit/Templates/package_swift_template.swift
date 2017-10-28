@@ -15,7 +15,7 @@ func packageDescriptionTemplate(packageName: String, targetName: String, branch:
                 .branch(ProcessInfo.processInfo.environment["HIGHWAY_BRANCH"] ?? "master"))
         ],
         targets: [
-            .target(name: "\(targetName)", dependencies: ["Deliver", "HighwayProject", "XCBuild", "HighwayCore", "FileSystem"], path: ".")
+            .target(name: "\(targetName)", dependencies: ["Keychain", "Deliver", "HighwayProject", "XCBuild", "HighwayCore", "FileSystem"], path: ".")
         ]
     )
     """    

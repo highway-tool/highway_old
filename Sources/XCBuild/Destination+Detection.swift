@@ -25,8 +25,8 @@ extension Destination {
         let id = idToEnd.prefix(upTo: idEnd)
         return Destination.byId(String(id))
     }
-    static func destinations(xcbuildOutput output: String) throws -> [Destination] {
-        let lines = output.trimmpedLines
+    static func destinations(xcbuildOutput output: String) -> [Destination] {
+        let lines = output.trimmedLines
         guard let availableIndex = (lines.index { $0.hasPrefix("Available destinations") }) else {
             return []
         }
@@ -52,34 +52,3 @@ extension Destination {
         return result
     }
 }
-
-private extension String {
-    var trimmed: String {
-        return trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-    var trimmpedLines: [String] {
-        var result = [String]()
-        enumerateLines { (line, _) in
-            result.append(line.trimmed)
-        }
-        return result
-    }
-}
-
-private let fixture3 = """
-xcodebuild: error: Unable to find a destination matching the provided destination specifier:
-{ name:NoSuchName }
-
-Unsupported device specifier option.
-The device “My Mac” does not support the following options: name
-Please supply only supported device specifier options.
-
-Available destinations for the "highwayiostest" scheme:
-{ platform:iOS Simulator, id:F1ED5B2E-FCD2-414A-83E8-194EA496B91B, OS:10.3.1, name:iPhone 6 - 10.3 }
-{ platform:iOS Simulator, id:EA60BBA3-4F0E-4FDA-95F7-1D9A404D033D, OS:11.0.1, name:iPhone 6 - 11 }
-
-Ineligible destinations for the "highwayiostest" scheme:
-{ platform:iOS, id:dvtdevice-DVTiPhonePlaceholder-iphoneos:placeholder, name:Generic iOS Device }
-{ platform:iOS Simulator, id:dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder, name:Generic iOS Simulator Device }
-
-"""

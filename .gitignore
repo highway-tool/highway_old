@@ -55,3 +55,4 @@ fastlane/test_output
 timeline.xctimeline
 playground.xcworkspace
 Package.resolved
+/Tests/XCBuildTests/Fixtures/highwayiostest_objc/archive.log

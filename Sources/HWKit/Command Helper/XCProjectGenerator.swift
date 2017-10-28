@@ -30,7 +30,7 @@ public class XCProjectGenerator {
 public extension XCProjectGenerator {
     public struct Result {
         init(projectUrl: Absolute) {
-            openCommand = "open \(projectUrl.path)"
+            openCommand = "open \(projectUrl.lastPathComponent)"
         }
         public let openCommand: String
     }

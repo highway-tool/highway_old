@@ -60,8 +60,8 @@ public class Terminal {
 }
 
 fileprivate extension Terminal {
-    func _withPrompt(_ text: String) -> String {
-        return promptTemplate.terminalString + text
+    func _withPrompt(_ text: String, color: Color = .none, bold: Bool = false) -> String {
+        return promptTemplate.terminalString + Text(text, color: color, bold: bold).terminalString
     }
 }
 public typealias UI = _UI
@@ -69,20 +69,26 @@ public typealias UI = _UI
 extension Terminal: _UI {
     
     public func error(_ text: String) {
-        rawLogNl(_withPrompt(text))
+        rawLogNl(_withPrompt(text, color: .red))
     }
+    
     public func success(_ text: String) {
-        rawLogNl(_withPrompt(text))
+        rawLogNl(_withPrompt(text, color: .green))
     }
     
     public func message(_ text: String) {
         rawLogNl(_withPrompt(text))
     }
     
+    public func important(_ text: String) {
+        rawLogNl(_withPrompt(text, color: .cyan, bold: true))
+    }
+    
     public func verbose(_ text: String) {
         guard self.verbose else { return }
         rawLogNl(_withPrompt(text))
     }
+    
     public func print(_ printable: Printable) {
         rawLog(printable.printableString(with: .defaultOptions()))
     }

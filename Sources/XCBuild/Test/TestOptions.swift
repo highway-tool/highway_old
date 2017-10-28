@@ -1,4 +1,5 @@
 import Foundation
+import Url
 
 /// Options for xcodebuild's build & test actions:
 public struct TestOptions {
@@ -7,7 +8,7 @@ public struct TestOptions {
     
     // MARK: - Properties
     public var scheme: String? // -scheme
-    public var project: String? // -project [sub-type: path]
+    public var project: Absolute? // -project [sub-type: path]
     
     // If nil XCBuild tries to auto-detect the destination.
     public var destination: Destination? // -destination

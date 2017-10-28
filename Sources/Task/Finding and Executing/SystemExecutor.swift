@@ -39,7 +39,7 @@ private extension Process {
 internal extension Task {
     internal var toProcess: Process {
         let result = Process()
-        result.arguments = arguments.all
+        result.arguments = arguments.asProcessArguments
         result.launchPath = executableUrl.path
         if let currentDirectoryPath = currentDirectoryUrl?.path {
             result.currentDirectoryPath = currentDirectoryPath

@@ -84,7 +84,7 @@ extension Deliver.Password {
         }
     }
     fileprivate var arguments: Arguments {
-        return  ["--password", passwordArgument]
+        return Arguments(arguments: ["--password", SecureString(passwordArgument)])
     }
 
 }

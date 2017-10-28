@@ -20,11 +20,15 @@ final class App: Highway<AppHighway> {
         highway(.self_update, "Updates highway & the supporting frameworks") ==> _self_update
         highway(.bootstrap, "Bootstraps the highway home directory")         ==> _bootstrap
         highway(.help, "Displays available commands and options")            ==> _showHelp
-        highway(.version, "Print version information and exit", command: "--version") ==> _version
 
         onError = _handleError
         onEmptyCommand = _showHelp
         onUnrecognizedCommand = _fallbackCommand
+    }
+    
+    // MARK: - Running highway
+    override func didFinishLaunching(with invocation: Invocation) {
+        ui.verbosePrint(VerboseInfo(version: CurrentVersion))
     }
     
     // MARK: - Private Highways
@@ -34,7 +38,7 @@ final class App: Highway<AppHighway> {
         guard let bundle = __currentHighwayBundle() else {
             return []
         }
-        return (HighwayProjectTool(compiler: swift, bundle: bundle, system: system, fileSystem: fileSystem).availableHighways())
+        return (HighwayProjectTool(compiler: swift, bundle: bundle, system: system, fileSystem: fileSystem, verbose: verbose, ui: ui).availableHighways())
     }
     
     @discardableResult
@@ -61,7 +65,7 @@ final class App: Highway<AppHighway> {
         }
         do {
             ui.message("Updating support frameworks…")
-            let _highway = HighwayProjectTool(compiler: swift, bundle: bundle, system: system, fileSystem: fileSystem)
+            let _highway = HighwayProjectTool(compiler: swift, bundle: bundle, system: system, fileSystem: fileSystem, verbose: verbose, ui: ui)
             try _highway.update()
             ui.success("Success")
         } catch {
@@ -73,7 +77,7 @@ final class App: Highway<AppHighway> {
     private func _init() throws {
         try self.__ensureValidHomeBundle()
         let projectBundle = try HighwayBundle(creatingInParent: abscwd(), fileSystem: fileSystem, configuration: .standard, homeBundleConfiguration: .standard)
-        ui.message("Created at: \(projectBundle.url). Try 'highway generate'.")
+        ui.success("Created at: \(projectBundle.xcodeprojectUrl.lastPathComponent). Try 'highway generate'.")
     }
     
     private func _generate() throws {
@@ -85,8 +89,10 @@ final class App: Highway<AppHighway> {
             return
         }
         let project = try XCProjectGenerator(swift: swift, bundle: bundle).generate()
-        ui.success("DONE. Try:")
-        ui.success("  " + project.openCommand)
+        ui.success("Project '\(bundle.xcodeprojectUrl.lastPathComponent)' generated. Try:")
+        ui.success("$ " + project.openCommand)
+        ui.important("Hint: You have to change the scheme to '_highway' after opening the project.")
+        
     }
     
     private func _update_highway() throws -> HomeBundle {
@@ -114,12 +120,6 @@ final class App: Highway<AppHighway> {
         ui.print(String.newline)
     }
     
-    private func _version() throws {
-        let line = Line(prompt: .normal, text: Text("highway \(CurrentVersion)"))
-        ui.print(line)
-        ui.print(String.newline)
-    }
-    
     private func _self_update() throws {
         let homeBundle = try _update_highway()
         let updater = SelfUpdater(homeBundle: homeBundle, git: git, system: system)
@@ -143,9 +143,9 @@ final class App: Highway<AppHighway> {
             return
         }
         let selfInvocation = CommandLineInvocationProvider().invocation()
-        let arguments = (verbose ? ["--verbose"] : []) + [selfInvocation.highway] + selfInvocation.arguments.all
-        let args = Arguments(arguments)
-        let projectTool = HighwayProjectTool(compiler: swift, bundle: bundle, system: system, fileSystem: fileSystem)
+        let arguments = [selfInvocation.highway] + selfInvocation.arguments.all
+        let args = Arguments(arguments: arguments)
+        let projectTool = HighwayProjectTool(compiler: swift, bundle: bundle, system: system, fileSystem: fileSystem, verbose: verbose, ui: ui)
         _ = try projectTool.build(thenExecuteWith: args)
     }
     
@@ -153,10 +153,9 @@ final class App: Highway<AppHighway> {
         let info = appInfo(developerProvidedDescriptions: __customHighways())
         let prolog:Text =
             .newline +
-            .whitespace(3) + .text("highway", bold: true) + .newline +
-            .whitespace(3) + .text("Automate development tasks.") + .newline +
-            .whitespace(3) + .text("Nothing new to learn. It is just Swift") + .newline +
-            .newline
+                .whitespace(3) + .text("highway", color: .red, bold: true) +
+                .whitespace(1) + .text("✱ Version \(CurrentVersion)", color: .none, bold: true) + .newline +
+                .newline
         ui.print(prolog)
         ui.print(info)
     }

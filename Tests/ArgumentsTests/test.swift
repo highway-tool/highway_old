@@ -17,5 +17,13 @@ final class ArgumentsTests: XCTestCase {
         XCTAssertNoThrow(try parser.consume(["--firstname", "Chris"]))
         print(p)
     }
-    
+    func testEmptyArgs() {
+        XCTAssert(Arguments(["hello", "", "world"]) == Arguments(["hello", "world"]))
+        var args = Arguments()
+        args += ["Hello"]
+        args += [""]
+        args += ["World"]
+        XCTAssert(args == Arguments(["Hello", "World"]))
+
+    }
 }

@@ -19,21 +19,38 @@ public class HighwayProjectTool {
     public let compiler: SwiftTool
     public let bundle: HighwayBundle
     public var fileSystem: FileSystem
+    public let verbose: Bool
+    public let ui: UI
     
     // MARK: - Init
-    public init(compiler: SwiftTool, bundle: HighwayBundle, system: System, fileSystem: FileSystem) {
+    public init(
+        compiler: SwiftTool,
+        bundle: HighwayBundle,
+        system: System,
+        fileSystem: FileSystem,
+        verbose: Bool,
+        ui: UI) {
         self.compiler = compiler
         self.system = system
         self.bundle = bundle
         self.fileSystem = fileSystem
+        self.verbose = verbose
+        self.ui = ui
     }
     
     // MARK: - Working with the Tool
     public func availableHighways() -> [HighwayDescription] {
-        guard let result = try? build(thenExecuteWith: [PrivateHighway.listPublicHighwaysAsJSON]) else {
+        do {
+            try build(thenExecuteWith: [])
+            let url = bundle.projectDescriptionUrl
+            ui.verbose("Reading project description: \(url)")
+            let data = try fileSystem.data(at: url)
+            let result = (try? Array(rawHighwaysData: data)) ?? []
+            ui.verbose("Project description: \(try result.jsonString())")
+            return result
+        } catch {
             return []
         }
-        return (try? Array(rawHighwaysData: result.outputData)) ?? []
     }
 
     public func update() throws {
@@ -46,16 +63,23 @@ public class HighwayProjectTool {
         return BuildResult(executableUrl: url, artifact: artifact)
     }
     
+    @discardableResult
     public func build(thenExecuteWith arguments: Arguments) throws -> BuildThenExecuteResult {
         let buildResult = try build()
+        
         let executableUrl = buildResult.executableUrl
         
         try fileSystem.assertItem(at: executableUrl, is: .file)
-        
+        var arguments = arguments
+        if verbose {
+            arguments = Arguments(["--verbose"]) + arguments
+        }
         let _highway = Task(executableUrl: executableUrl, arguments: arguments, currentDirectoryUrl: bundle.url.parent)
-        Terminal.shared.log("Launching: \(_highway.executableUrl)")
+        ui.verbose("Launching: \(_highway)")
 
-        _highway.enableReadableOutputDataCapturing()
+        if verbose == false {
+            _highway.enableReadableOutputDataCapturing()
+        }
 
         try system.execute(_highway).assertSuccess()
         

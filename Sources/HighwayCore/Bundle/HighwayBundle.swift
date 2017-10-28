@@ -12,6 +12,7 @@ import POSIX
     │   ├── Package.resolved
     │   ├── Package.swift
     │   ├── config.xcconfig
+    │   ├── project_description.json
     │   └── main.swift
     ├── _highway.xcodeproj/
     └── your app.xcodeproj/
@@ -57,6 +58,10 @@ public final class HighwayBundle {
 
     public var xcconfigFileUrl: Absolute {
         return url.appending(configuration.xcconfigName)
+    }
+    
+    public var projectDescriptionUrl: Absolute {
+        return url.appending(configuration.projectDescriptionName)
     }
 
     public var mainSwiftFileUrl: Absolute {
@@ -139,7 +144,7 @@ extension HighwayBundle {
         // MARK: - Properties / Convenience
         public var xcconfigName = "config.xcconfig"
         public var gitignoreName = ".gitignore"
-
+        public var projectDescriptionName = "project_description.json"
         // MARK: - Private Stuff
         public var branch = "master"
     }

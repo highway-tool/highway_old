@@ -3,7 +3,8 @@ import Foundation
 public protocol _UI {
     func message(_ text: String)
     func success(_ text: String)
-
+    func important(_ text: String)
+    
     /// Prints text only if --verbose is set.
     func verbose(_ text: String)
     func error(_ text: String)

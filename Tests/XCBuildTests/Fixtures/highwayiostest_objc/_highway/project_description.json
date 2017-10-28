@@ -1,0 +1,1 @@
+[{"name":"build","usage":"Builds the project"},{"name":"test","usage":"Executes tests"},{"name":"run","usage":"Runs the project"},{"name":"release","usage":"Releases the App"},{"name":"increase_build_number","usage":"Increases the build number"}]
