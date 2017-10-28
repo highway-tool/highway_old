@@ -8,36 +8,49 @@ public enum PrivateHighway {
     public static let listPublicHighwaysAsJSON = "listPublicHighwaysAsJSON"
 }
 
-public typealias HighwayBody = (Invocation) throws -> Any?
 
-open class _Highway<T: HighwayType> {
+
+open class _Highway<T: RawRepresentable> where T.RawValue == String {
     // MARK: - Types
     public typealias ErrorHandler = (Error) -> ()
     public typealias EmptyHandler = () throws -> ()
     public typealias UnrecognizedCommandHandler = (_ arguments: Arguments) throws -> ()
 
     // MARK: - Init
-    public init(_ highwayType: T.Type) {
+    public init(_ type: T.Type) {
         setupHighways()
     }
     
     // MARK: - Properties
     private var _highways = OrderedDictionary<String, Raw<T>>()
-    public var descriptions: [HighwayDescription] {
-        return _highways.values.map { $0.description }
-    }
     public var onError: ErrorHandler?
     public var onEmptyCommand: EmptyHandler?
     public var onUnrecognizedCommand: UnrecognizedCommandHandler?
     public var verbose = false
-    
-    // MARK: - Subclasses
-    open func setupHighways() {
-        
+    public var descriptions: [HighwayDescription] {
+        return _highways.values.map { $0.description }
     }
+
+    // MARK: - Subclasses
+    open func setupHighways() { }
+    
     // MARK: - Adding Highway
     public subscript(type: T) -> Raw<T> {
-        return _highways[type.name, default: Raw(type)]
+        return _highways[type.name, default: Raw(name: type.name)]
+    }
+
+    public func highway(_ highway: T, _ usage: String, command: String? = nil) -> Raw<T> {
+        let command = command ?? highway.name
+        let raw = Raw<T>(name: command, usage: usage)
+        _highways.append(raw, forKey: command)
+        return raw
+    }
+
+    public func highway(_ highway: T) -> Raw<T> {
+        let command = highway.name
+        let raw = Raw<T>(name: command)
+        _highways.append(raw, forKey: command)
+        return raw
     }
     
     // MARK: Getting Results
@@ -51,7 +64,7 @@ open class _Highway<T: HighwayType> {
     // MARK: Executing
     private func _handle(highway: Raw<T>, with arguments: Arguments) throws {
         let dependencies: [Raw<T>] = try highway.dependencies.map { dependency in
-            guard let result = _highways[dependency] else {
+            guard let result = _highways[dependency.name] else {
                 throw "\(highway.name) depends on \(dependency) but no such highway is registered."
             }
             return result
@@ -66,6 +79,10 @@ open class _Highway<T: HighwayType> {
             _reportError(error)
             throw error
         }
+    }
+    
+    public func invocation(`for` highway: T) -> Invocation {
+        return Invocation(highway: highway.name, verbose: verbose)
     }
     
     /// Calls the error handler with the given error.
@@ -91,6 +108,7 @@ open class _Highway<T: HighwayType> {
             _reportError(error)
         }
     }
+    
     private func _handleUnrecognizedCommandOrReportError(arguments: Arguments) {
         guard let unrecognizedHandler = onUnrecognizedCommand else {
             _reportError("Unrecognized command detected. No highway matching \(arguments) found and no unrecognized command handler set.")
@@ -138,67 +156,10 @@ open class _Highway<T: HighwayType> {
         Swift.print(text, separator: "", terminator: "\n")
         fflush(stdout)
     }
-    
-    public class Raw<T: HighwayType> {
-        // MARK: - Types
-        typealias HighwayBody = (Invocation) throws -> Any?
-        
-        // MARK: - Properties
-        private let type: T
-        public var name: String { return type.name }
-        public var dependencies = [String]()
-        var body: HighwayBody?
-        public var result: Any?
-        public var description: HighwayDescription {
-            var result = HighwayDescription(name: type.name, usage: type.usage)
-            result.examples = type.examples
-            return result
-        }
-        
-        // MARK: - Init
-        init(_ highway: T) {
-            self.type = highway
-        }
-        
-        // MARK: - Setting Bodies
-        public static func ==> (lhs: Raw, rhs: @escaping () throws -> ()) { lhs.execute(rhs) }
-        public static func ==> (lhs: Raw, rhs: @escaping () throws -> (Any)) { lhs.execute(rhs) }
-        public static func ==> (lhs: Raw, rhs: @escaping (Invocation) throws -> (Any?)) { lhs.execute(rhs) }
-        public static func ==> (lhs: Raw, rhs: @escaping (Invocation) throws -> ()) { lhs.execute(rhs) }
+}
 
-        // MARK: - Cast Bodies
-        public func execute(_ newBody: @escaping () throws -> ()) {
-            body = { _ in try newBody() }
-        }
-        
-        public func execute(_ newBody: @escaping (_ invocation: Invocation) throws -> ()) {
-            body = {
-                try newBody($0)
-                return ()
-            }
-        }
-        public func execute(_ newBody: @escaping (_ invocation: Invocation) throws -> (Any?)) {
-            body = { try newBody($0) }
-        }
-        
-        public func execute(_ newBody: @escaping () throws -> (Any?)) {
-            body = { _ in try newBody() }
-        }
-
-        // MARK: - Set Dependencies
-        public func depends(on highways: T...) -> Raw<T> {
-            _setDependencies(highways)
-            return self
-        }
-        
-        private func _setDependencies(_ highways: [T]) {
-            dependencies = highways.map { $0.name }
-        }
-        
-        // MARK: - Invoke the Highway
-        func invoke(with invocation: Invocation) throws {
-            result = try body?(invocation)
-        }
+extension RawRepresentable where Self.RawValue == String {
+    var name: String {
+        return rawValue
     }
-
 }

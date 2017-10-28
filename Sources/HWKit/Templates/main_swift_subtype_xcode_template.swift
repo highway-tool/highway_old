@@ -8,7 +8,7 @@ import HighwayProject
 import Deliver
 import Foundation
 
-enum Way: String, HighwayType {
+enum Way: String {
     case test, build, run
     var usage: String {
         switch self {

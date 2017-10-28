@@ -9,7 +9,7 @@ import POSIX
 import Git
 import SwiftTool
 
-open class Highway<T: HighwayType>: _Highway<T> {
+open class Highway<T: RawRepresentable>: _Highway<T> where T.RawValue == String {
     public let fileSystem: FileSystem = LocalFileSystem()
     public let cwd = abscwd()
     public let system = LocalSystem.local()

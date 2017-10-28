@@ -14,7 +14,7 @@ final class HighwaysTests: XCTestCase {
         highway[.build] ==> { "build" }
         highway[.test] ==> { "test" }
     }
-    
+
     func testListHighwaysAsJSON() {
         _useDefaultHighways()
         highway.go("listPublicHighwaysAsJSON")
@@ -51,6 +51,7 @@ final class HighwaysTests: XCTestCase {
         func _build() throws {
             buildExecuted.fulfill()
         }
+        
         highway[.release].depends(on: .test) ==> _release
         highway[.test].depends(on: .build) ==> _test
         highway[.build] ==> _build
@@ -109,6 +110,7 @@ final class HighwaysTests: XCTestCase {
             buildCalled.assertForOverFulfill = true
             return "build"
         }
+        
         func _test() throws -> String {
             XCTAssertFalse(testPerformed)
             testPerformed = true
@@ -119,16 +121,15 @@ final class HighwaysTests: XCTestCase {
         
         highway[.build].depends(on: .test) ==> _build
         highway[.test] ==> _test
-        
-        
         highway.go("build")
         
         waitForExpectations(timeout: 5) { error in
             XCTAssertNil(error)
         }
     }
+    
     func testErrorHandlerIsCalledWhenHighwayThrows() {
-        let ctx = Invocation(highway: MockHighway.build.name)
+        let ctx = highway.invocation(for: .build)
         let onErrorExpectation = expectation(description: "Error handler is called.")
         let expectedError = "ich bin der ich bin ich"
         highway[.build] ==> { throw expectedError }
@@ -223,8 +224,6 @@ final class HighwaysTests: XCTestCase {
     }
 }
 
-
-
 // MARK: Helper & Mocks
 extension String: InvocationProvider {
     public func invocation() -> Invocation {
@@ -238,6 +237,6 @@ extension Invocation: InvocationProvider {
     }
 }
 
-enum MockHighway: String, HighwayType {
+enum MockHighway: String {
     case build, test, clean, release
 }

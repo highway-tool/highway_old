@@ -5,20 +5,20 @@ import Terminal
 public struct HighwayDescription: Codable {
     // MARK: - Properties
     public let name: String
-    public let usage: String
-    public var examples = [Example]()
+    public let usage: String?
 
     // MARK: - Init
-    init(name: String, usage: String) {
+    init(name: String, usage: String?) {
         self.name = name
         self.usage = usage
     }
 }
 
-extension Example {
-    func text(highway: String, indent: Text) -> Text {
-        let line1 = indent + .text("- ") + .text(help + ":", color: .green) + .newline
-        let line2 = indent + .whitespace(2) + .text("highway", color: .cyan) + .whitespace() + .text(highway, color: .none) + .whitespace() + .text(arguments ?? "", color: .none) + .newline
+extension HighwayDescription {
+    func text(indent: Text) -> Text {
+        let usage = self.usage ?? "No usage text provided."
+        let line1 = indent + .text("- ") + .text(usage + ":", color: .green) + .newline
+        let line2 = indent + .whitespace(2) + .text("highway", color: .cyan) + .whitespace() + .text(name, color: .none) + .whitespace() + .newline
         return Text([line1, line2])
     }
 }
@@ -40,21 +40,11 @@ extension Array where Iterator.Element == HighwayDescription {
     }
     
     func text() -> Text {
-        return Text(map { $0.text() })
+        return Text(map { $0.text(indent: .whitespace(5)) + .newline })
     }
     
     public func printableString(with options: Print.Options) -> String {
         return text().printableString(with: options)
-    }
-}
-
-public extension HighwayDescription {
-    func text() -> Text {
-        guard examples.isEmpty == false else {
-            return Text()
-        }
-        let texts:[Text] = examples.map { $0.text(highway: self.name, indent: .whitespace(5)) + .newline }
-        return Text(texts)
     }
 }
 

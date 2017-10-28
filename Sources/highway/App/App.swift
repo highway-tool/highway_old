@@ -7,16 +7,21 @@ import Arguments
 import HighwayProject
 import POSIX
 
+enum AppHighway: String {
+    case initialize, help, generate, bootstrap, clean, version, self_update
+}
+
 final class App: Highway<AppHighway> {
     // MARK: Highway Overrides
     override func setupHighways() {
-        self[.initialize] ==> _init
-        self[.help] ==> _showHelp
-        self[.generate] ==> _generate
-        self[.bootstrap] ==> _bootstrap
-        self[.clean] ==> _clean
-        self[.version] ==> _version
-        self[.self_update] ==> _self_update
+        highway(.initialize, "Initializes a new highway project", command: "init") ==> _init
+        highway(.generate, "Generates an Xcode project")                     ==> _generate
+        highway(.clean, "Delete build artifacts of your highway project")    ==> _clean
+        highway(.self_update, "Updates highway & the supporting frameworks") ==> _self_update
+        highway(.bootstrap, "Bootstraps the highway home directory")         ==> _bootstrap
+        highway(.help, "Displays available commands and options")            ==> _showHelp
+        highway(.version, "Print version information and exit", command: "--version") ==> _version
+
         onError = _handleError
         onEmptyCommand = _showHelp
         onUnrecognizedCommand = _fallbackCommand
