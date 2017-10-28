@@ -7,6 +7,7 @@ import HighwayCore
 import Deliver
 import TestKit
 import Keychain
+import Terminal
 
 final class XCBuildTests: XCTestCase {
     // MARK: - XCTest
@@ -79,10 +80,9 @@ final class XCBuildTests: XCTestCase {
 
         var options = TestOptions()
         options.project = projectUrl.path
-        options.destination = Destination.simulator(.iOS, name: "iPhone 7", os: .latest, id: nil)
         options.scheme = "highwayiostest"
         
-        let xcbuild = XCBuild(system: system, fileSystem: LocalFileSystem())
+        let xcbuild = XCBuild(system: system, fileSystem: LocalFileSystem(), ui: Terminal.shared)
         let result = try xcbuild.buildAndTest(using: options)
         print(result)
     }
@@ -95,10 +95,9 @@ final class XCBuildTests: XCTestCase {
         var options = ArchiveOptions()
         options.scheme = "highwayiostest"
         options.project = Absolute(projectUrl)
-        options.destination = Destination.device(.iOS, name: nil, isGeneric: true, id: nil)
         options.archivePath = try fs.uniqueTemporaryDirectoryUrl().appending("uud.xcarchive")
         
-        let build = XCBuild(system: system, fileSystem: fs)
+        let build = XCBuild(system: system, fileSystem: fs, ui: Terminal.shared)
         try build.archive(using: options)
         
         var exportArchiveOptions = ExportArchiveOptions()
@@ -134,7 +133,7 @@ final class XCBuildTests: XCTestCase {
         options.destination = Destination.device(.iOS, name: nil, isGeneric: true, id: nil)
         options.archivePath = try fs.uniqueTemporaryDirectoryUrl().appending("uud.xcarchive")
         
-        let build = XCBuild(system: system, fileSystem: fs)
+        let build = XCBuild(system: system, fileSystem: fs, ui: Terminal.shared)
         try build.archive(using: options)
         
         var exportArchiveOptions = ExportArchiveOptions()

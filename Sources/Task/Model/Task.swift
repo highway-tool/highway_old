@@ -33,23 +33,30 @@ public class Task {
         get { return io.output }
         set { io.output = newValue }
     }
+    public var error: Channel {
+        get { return io.error }
+        set { io.error = newValue }
+    }
+
     
     public var state: State
     public func enableReadableOutputDataCapturing() {
         io.enableReadableOutputDataCapturing()
     }
-    @available(*, unavailable, renamed: "capturedOutputData")
-    public var readOutputData: Data? { return io.readOutputData }
-    public var capturedOutputData: Data? { return io.readOutputData }
-
-    @available(*, unavailable, renamed: "capturedOutputString")
-    public var readOutputString: String? {
-        return capturedOutputString
+    public func enableErrorOutputCapturing() {
+        io.enableErrorOutputCapturing()
     }
+    public var trimmedErrorOutput: String? {
+        guard let data = io.readErrorData else {
+            return nil
+        }
+        return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    public var capturedOutputData: Data? { return io.readOutputData }
     public var trimmedOutput: String? {
         return capturedOutputString?.trimmingCharacters(in: .whitespacesAndNewlines)
     }
-
     public var capturedOutputString: String? {
         guard let data = capturedOutputData else {
             return nil

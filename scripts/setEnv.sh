@@ -18,5 +18,8 @@ set -o pipefail         # => sane exit codes when using |
 # Adjust paths as needed
 # call the script like this:
 # $ . /path/to/script
-export HIGHWAY_REPOSITORY=/Users/d069408/privat/Developer/highway_github
-export HIGHWAY_BRANCH=feature/misc
+
+echo "HIGHWAY_REPOSITORY=${HIGHWAY_DEV_HOME}"
+echo "HIGHWAY_BRANCH=$1"
+export HIGHWAY_REPOSITORY=${HIGHWAY_DEV_HOME}
+export HIGHWAY_BRANCH=$1

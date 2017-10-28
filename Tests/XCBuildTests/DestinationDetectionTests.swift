@@ -2,7 +2,41 @@ import XCTest
 @testable import Deliver
 @testable import XCBuild
 
-final class Test: XCTestCase {
+final class DestinationDetectionTests: XCTestCase {
+    func test1() throws {
+        let destinations = try Destination.destinations(xcbuildOutput: fixture1)
+        guard destinations.count == 2 else {
+            XCTFail("wrong count")
+            return
+        }
+        XCTAssertEqual(destinations[0].id, "AD911BF6-5421-47D3-AD80-DACBEB9B4B24")
+        XCTAssertEqual(destinations[1].id, "EEDAA5DA-EC8D-4747-B96D-F6D16E1622B8")
+    }
+    
+    func test2() throws {
+        let destinations = try Destination.destinations(xcbuildOutput: fixture2)
+        XCTAssertTrue(destinations.isEmpty)
+    }
+    
+    func test3() throws {
+        let destinations = try Destination.destinations(xcbuildOutput: fixture3)
+        guard destinations.count == 2 else {
+            XCTFail("wrong count")
+            return
+        }
+        XCTAssertEqual(destinations[0].id, "F1ED5B2E-FCD2-414A-83E8-194EA496B91B")
+        XCTAssertEqual(destinations[1].id, "EA60BBA3-4F0E-4FDA-95F7-1D9A404D033D")
+    }
+    
+    func testEmptyInput() throws {
+        let destinations = try Destination.destinations(xcbuildOutput: "")
+        XCTAssertTrue(destinations.isEmpty)
+    }
+    
+    func testGarbageInput() throws {
+        let destinations = try Destination.destinations(xcbuildOutput: "dssdlk salkdjalskdklasdj a\nfddfdsfdsfdsfsdf334829748927489232\nnnnn")
+        XCTAssertTrue(destinations.isEmpty)
+    }
 }
 
 // MARK: Fixtures
@@ -62,3 +96,4 @@ Ineligible destinations for the "highwayiostest" scheme:
 { platform:iOS Simulator, id:dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder, name:Generic iOS Simulator Device }
 
 """
+

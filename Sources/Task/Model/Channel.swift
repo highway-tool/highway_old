@@ -61,7 +61,10 @@ public class Channel {
     public class func standardOutput() -> Channel {
         return .init(.standardOutput)
     }
-    
+    public class func standardError() -> Channel {
+        return .init(.standardError)
+    }
+
     public class func pipe() -> Channel {
         return self.init(Pipe())
     }

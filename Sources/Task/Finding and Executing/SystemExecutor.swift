@@ -31,6 +31,7 @@ private extension Process {
     func takeIOFrom(_ task: Task) {
         standardInput = task.input.asProcessChannel
         standardOutput = task.output.asProcessChannel
+        standardError = task.error.asProcessChannel
     }
 }
 

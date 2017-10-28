@@ -21,7 +21,7 @@ open class Highway<T: RawRepresentable>: _Highway<T> where T.RawValue == String 
         return Deliver.Local(altool: Altool(system: system, fileSystem: fileSystem))
     }()
     public lazy var xcbuild: XCBuild = {
-        return XCBuild(system: system, fileSystem: fileSystem)
+        return XCBuild(system: system, fileSystem: fileSystem, ui: ui)
     }()
     public lazy var swift: SwiftTool = {
         return _SwiftTool(system: system)

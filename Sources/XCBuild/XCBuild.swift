@@ -4,6 +4,7 @@ import FileSystem
 import Url
 import Arguments
 import Result
+import Terminal
 
 /// Low-level Wrapper around xcodebuild. This is a starting point for additonal wrappers that do things like auto detection
 /// of certain settings/options. However there are some things XCBuild already does which makes it a little bit more than
@@ -13,16 +14,23 @@ public final class XCBuild {
     // MARK: - Properties
     public let system: System
     public let fileSystem: FileSystem
+    private let ui: UI
     
     // MARK: - Init
-    public init(system: System, fileSystem: FileSystem) {
+    public init(system: System, fileSystem: FileSystem, ui: UI) {
         self.system = system
         self.fileSystem = fileSystem
+        self.ui = ui
+        Terminal.shared.verbose = true
     }
     
     // MARK: - Archiving
     @discardableResult
     public func archive(using options: ArchiveOptions) throws -> Archive {
+        var options = options
+        if options.destination == nil {
+            options.destination = Destination.generic(platform: ArchivePlatform.iOS.rawValue)
+        }
         let task = try _archiveTask(using: options).dematerialize()
         try system.execute(task).assertSuccess()
         guard let archivePath = options.archivePath else {
@@ -57,8 +65,11 @@ public final class XCBuild {
     // MARK: Testing
     @discardableResult
     public func buildAndTest(using options: TestOptions) throws -> TestReport {
+        var options = options
+        if options.destination == nil {
+            options.destination = try _buildAndTestDestination(using: options)
+        }
         let xcbuild = try _buildTestTask(using: options).dematerialize()
-        
         if let xcpretty = system.task(named: "xcpretty").value {
             xcbuild.output = .pipe()
             xcbuild.environment["NSUnbufferedIO"] = "YES" // otherwise xcpretty might not get everything
@@ -69,6 +80,23 @@ public final class XCBuild {
             try system.execute(xcbuild).assertSuccess()
         }
         return TestReport()
+    }
+    
+    @discardableResult
+    public func _buildAndTestDestination(using options: TestOptions) throws -> Destination? {
+        ui.message("Trying to detect destination…")
+        var options = options
+        options.destinationTimeout = 1
+        options.destination = Destination.named("NoSuchName")
+        let xcbuild = try _buildTestTask(using: options).dematerialize()
+        xcbuild.enableErrorOutputCapturing()
+        _ = system.execute(xcbuild)
+        guard let output = xcbuild.trimmedErrorOutput else {
+            ui.error("Unable to detect destionation. Got no output from xcodebuild.")
+            return nil
+        }
+        ui.verbose("xcodebuild output:\n\n\(output)")
+        return try Destination.destinations(xcbuildOutput: output).first
     }
     
     private func _buildTestTask(using options: TestOptions) -> Result<Task, TaskCreationError> {
@@ -104,6 +132,15 @@ extension XCodeBuildOption: ArgumentsConvertible {
 private func _option(_ name: String, value: String?) -> XCodeBuildOption {
     return XCodeBuildOption(name: name, value: value)
 }
+private func _option(_ name: String, value: Int?) -> XCodeBuildOption {
+    let stringValue: String?
+    if let value = value {
+        stringValue = String(value)
+    } else {
+        stringValue = nil
+    }
+    return XCodeBuildOption(name: name, value: stringValue)
+}
 
 fileprivate extension ArchiveOptions {
     var arguments: Arguments {
@@ -133,6 +170,7 @@ fileprivate extension TestOptions {
         args += _option("scheme", value: scheme)
         args += _option("project", value: project)
         args += _option("destination", value: destination.map { "\($0.asString)" })
+        args += _option("destination-timeout", value: destinationTimeout)
         args.append(["build", "test"])
         return args
     }

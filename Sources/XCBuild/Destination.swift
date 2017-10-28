@@ -6,21 +6,34 @@ import Foundation
 /// instruments -s devices
 
 public struct Destination {
+    // MARK: - Properties
     var raw = [String: String]()
-    private init(_ properties: [String: String]) {
-        raw = properties
-    }
+    
+    /* internal for testing */ var id: String?
     public var asString: String {
         return raw.map { "\($0.key)=\($0.value)" }.joined(separator: ",")
     }
 
+    // MARK: - Init
+    private init(_ properties: [String: String], id: String? = nil) {
+        raw = properties
+        self.id = id
+    }
+
+    // MARK: - Convenience
+    public static func byId(_ id: String) -> Destination {
+        return Destination(["id":id], id: id)
+    }
+    public static func named(_ name: String) -> Destination {
+        return Destination(["name":name])
+    }
     public static func macOS(architecture: Architecture) -> Destination {
         return Destination(
             [
                 "platform" : PlatformType.macOS.rawValue,
                 "arch" : architecture.rawValue
-            ]
-        )
+            ],
+            id: nil)
     }
     
     public static func device(_ device: Device, name: String?, isGeneric: Bool = true, id: String?) -> Destination {
@@ -32,7 +45,11 @@ public struct Destination {
         if let id = id {
             properties["id"] = id
         }
-        return Destination(properties)
+        return Destination(properties, id: id)
+    }
+    
+    public static func generic(platform: String) -> Destination {
+        return Destination(["generic/platform" : platform])
     }
     
     public static func simulator(_ simulator: Simulator, name: String, os: OS, id: String?) -> Destination {
@@ -44,7 +61,7 @@ public struct Destination {
         if let id = id {
             properties["id"] = id
         }
-        return Destination(properties)
+        return Destination(properties, id: id)
     }
 }
 

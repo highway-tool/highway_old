@@ -80,7 +80,7 @@ if [ -z ${HIGHWAY_DEBUG_ENABLED+x} ]
 fi
 
 # settings
-__repoUrl="https://github.com/ChristianKienle/highway.git"
+__repoUrl="https://github.com/highway-tool/highway.git"
 __wc_name="highway"
 
 # actual code
