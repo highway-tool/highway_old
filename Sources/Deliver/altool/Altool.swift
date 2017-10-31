@@ -4,17 +4,22 @@ import Task
 import FileSystem
 import Result
 import Errors
+
 public class Altool {
     // MARK: - Properties
     public let system: System
     public let fileSystem: FileSystem
-    private let provider: AltoolProvider
+    
+    // MARK: - Executable Provider
+    /// Returns an ExecutableProvider that is capable to find altool if it does exist.
+    public class func executableProvider(developerDirectory: Absolute, fileSystem: FileSystem) -> ExecutableProvider {
+        return AltoolProvider(developerDirectory: developerDirectory, fileSystem: fileSystem)
+    }
     
     // MARK: - Init
     public init(system: System, fileSystem: FileSystem) {
         self.system = system
         self.fileSystem = fileSystem
-        self.provider = AltoolProvider(system: system, fileSystem: fileSystem)
     }
     
     // MARK: - Working with the Tool
@@ -22,6 +27,7 @@ public class Altool {
         case other(ErrorMessage)
         case executionError(ExecutionError)
     }
+    
     public func execute(with options: Options) -> Result<Void, Error> {
         let taskResult = _task(with: options)
         switch taskResult {
@@ -39,42 +45,42 @@ public class Altool {
     
     // MARK: - Helper
     private func _task(with options: Options) -> Result<Task, ErrorMessage> {
-        let url = provider.executableUrl()
-        return url.map { return Task(executableUrl: $0, arguments: options.arguments, currentDirectoryUrl: nil) }
+        let result = system.task(named: "altool")
+        switch result {
+        case .success(let task):
+            task.arguments += options.arguments
+            return Result.success(task)
+        case .failure(let error):
+            return Result.failure(error.localizedDescription)
+        }
     }
 }
+
 private class AltoolProvider {
-    private let system: System
+    // MARK: - Properties
+    /// Something like '/Applications/Xcode.app/Contents/Developer'
+    private let developerDirectory: Absolute
     private let fileSystem: FileSystem
     
-    init(system: System, fileSystem: FileSystem) {
-        self.system = system
+    // MARK: - Init
+    init(developerDirectory: Absolute, fileSystem: FileSystem) {
+        self.developerDirectory = developerDirectory
         self.fileSystem = fileSystem
     }
     
+    // MARK: - Working with the Provider
     func executableUrl() -> Result<Absolute, ErrorMessage> {
-        let url = _developerDirectory().parent.appending("Applications/Application Loader.app/Contents/Frameworks/ITunesSoftwareService.framework/Versions/A/Support/altool")
+        let url = developerDirectory.parent.appending("Applications/Application Loader.app/Contents/Frameworks/ITunesSoftwareService.framework/Versions/A/Support/altool")
         guard fileSystem.file(at: url).isExistingFile else {
             return .failure("altool not found in '\(url)'.")
         }
         return .success(url)
     }
-    
-    /// for example: Applications/Xcode.app/Contents/Applications/Application Loader.app/Contents/Frameworks/ITunesSoftwareService.framework/Versions/A/Support/altool
-    private func _developerDirectory() -> Absolute {
-        let defaultDir: Absolute = "/Applications/Xcode.app/Contents/Developer"
-        do {
-            let xcrun = try system.task(named: "xcrun").dematerialize()
-            xcrun.arguments.append(contentsOf: ["xcode-select", "-p"])
-            xcrun.enableReadableOutputDataCapturing()
-            try system.execute(xcrun).assertSuccess()
-            guard let developerDirectory = xcrun.trimmedOutput else {
-                return defaultDir
-            }
-            return Absolute(developerDirectory)
-        } catch {
-            return defaultDir
-        }
+}
+
+extension AltoolProvider: ExecutableProvider {
+    func urlForExecuable(_ executableName: String) -> Absolute? {
+        guard executableName == "altool" else { return nil }
+        return executableUrl().value
     }
-    
 }

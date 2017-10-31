@@ -5,6 +5,7 @@ import Arguments
 import HighwayProject
 import Git
 import Url
+import SwiftTool
 
 extension GitAutotag {
     func getNextVersion(cwd: Absolute) throws -> String {
@@ -12,37 +13,23 @@ extension GitAutotag {
     }
 }
 
-enum CustomHighway: String, HighwayType {
+enum CustomHighway: String {
     case test, build, release, updateVersion, release_then_upload
-    var usage: String {
-        switch self {
-        case .test:
-            return "Executed all unit and integration tests"
-        case .build:
-            return "Builds highway"
-        case .release:
-            return "Creates and publishes a new release"
-        case .release_then_upload:
-            return "Creates and publishes a new release, then uploads it."
-        case .updateVersion:
-            return "Writes the next tag to CurrentVersion.swift and tags the current state."
-        }
-    }
 }
 
 final class App: Highway<CustomHighway> {
     override func setupHighways() {
-        self[.test] ==> _test
-        self[.release].depends(on: .test, .updateVersion, .build) ==> _release
-        self[.build].depends(on: .test) ==> _build
-        self[.updateVersion] ==> _commitUpdateVersionAndTag
-        self[.release_then_upload].depends(on: .release) ==> _release_then_upload
+        highway(.test, "Executed all unit and integration tests") ==> _test
+        highway(.build, "Builds highway") ==> _build
+        highway(.release, "Creates and publishes a new release").depends(on:  .test, .updateVersion, .build) ==> _release
+        highway(.updateVersion, "Writes the next tag to CurrentVersion.swift and tags the current state.") ==> _commitUpdateVersionAndTag
+        highway(.release_then_upload, "Creates and publishes a new release, then uploads it.") ==> _release_then_upload
         self.onError = _error
     }
     
     func _commitUpdateVersionAndTag() throws -> String {
         let nextVersion = try GitAutotag(system: system).getNextVersion(cwd: cwd)
-        try update(nextVersion: nextVersion, currentDirectoryURL: cwd, fileSystem: context.fileSystem)
+        try update(nextVersion: nextVersion, currentDirectoryURL: cwd, fileSystem: fileSystem)
         
         try git.addAll(at: cwd)
         try git.commit(at: cwd, message: "Release \(nextVersion)")
@@ -57,14 +44,12 @@ final class App: Highway<CustomHighway> {
     }
     
     func _test() throws {
-        try SwiftBuildSystem().test()
+        try swift.test(projectAt: cwd)
     }
     
-    func _build() throws -> SwiftBuildSystem.Artifact {
-        let swiftBuildSystem = SwiftBuildSystem(context: context)
-        let buildOptions = SwiftOptions(subject: .auto, projectDirectory: cwd, configuration: .release, verbose: true, additionalArguments: [])
-        let plan = try swiftBuildSystem.executionPlan(with: buildOptions)
-        return try swiftBuildSystem.execute(plan: plan)
+    func _build() throws -> Artifact {
+        let options = SwiftOptions(subject: .auto, configuration: .release, verbose: true, additionalArguments: [])
+        return try swift.build(projectAt: cwd, options: options)
     }
     
     func _release() throws {

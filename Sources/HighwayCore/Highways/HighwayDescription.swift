@@ -43,7 +43,7 @@ extension Array where Iterator.Element == HighwayDescription {
         return Text(map { $0.text(indent: .whitespace(5)) + .newline })
     }
     
-    public func printableString(with options: Print.Options) -> String {
+    public func printableString(with options: Print.Options) -> Text {
         return text().printableString(with: options)
     }
 }

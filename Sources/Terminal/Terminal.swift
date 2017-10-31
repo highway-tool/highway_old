@@ -18,11 +18,13 @@ public class Terminal {
     public func log(_ text: String) {
         rawLog("\r" + self.promptTemplate.terminalString + text + "\n")
     }
+    
     private func rawLog(_ text: String) {
         _sync {
             stream.write(text)
         }
     }
+    
     private func rawLogNl(_ text: String) {
         _sync {
             stream.write("\r" + text + "\n")
@@ -34,8 +36,14 @@ public class Terminal {
             self._write(printer)
         }
     }
+    
     private func _write(_ printer: Printer) {
         let string = printer.string(with: .defaultOptions())
+        _write(text: string)
+    }
+    
+    private func _write(text: Text) {
+        let string = text.terminalString
         stream.write(string)
     }
     
@@ -47,7 +55,7 @@ public class Terminal {
     
     private func _write(_ printable: Printable) {
         let string = printable.printableString(with: .defaultOptions())
-        stream.write(string)
+        _write(text: string)
     }
     
     // MARK: - Working with the Queue
@@ -64,10 +72,10 @@ fileprivate extension Terminal {
         return promptTemplate.terminalString + Text(text, color: color, bold: bold).terminalString
     }
 }
+
 public typealias UI = _UI
 
 extension Terminal: _UI {
-    
     public func error(_ text: String) {
         rawLogNl(_withPrompt(text, color: .red))
     }
@@ -75,7 +83,9 @@ extension Terminal: _UI {
     public func success(_ text: String) {
         rawLogNl(_withPrompt(text, color: .green))
     }
-    
+    public func warn(_ text: String) {
+        rawLogNl(_withPrompt(text, color: .yellow))
+    }
     public func message(_ text: String) {
         rawLogNl(_withPrompt(text))
     }
@@ -90,14 +100,11 @@ extension Terminal: _UI {
     }
     
     public func print(_ printable: Printable) {
-        rawLog(printable.printableString(with: .defaultOptions()))
+        rawLog(printable.printableString(with: .defaultOptions()).terminalString)
     }
     
     public func verbosePrint(_ printable: Printable) {
         guard self.verbose else { return }
-        rawLog(printable.printableString(with: .defaultOptions()))
+        rawLog(printable.printableString(with: .defaultOptions()).terminalString)
     }
-
 }
-
-

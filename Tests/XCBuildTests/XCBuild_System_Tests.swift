@@ -30,9 +30,34 @@ final class XCBuildTests: XCTestCase {
         }
     }
     
+    override func setUp() {
+        super.setUp()
+        Terminal.shared.verbose = true
+        let devDir = XCBuildTests._developerDirectory()
+        let altoolProvider = Altool.executableProvider(developerDirectory: devDir, fileSystem: LocalFileSystem())
+        self.system = LocalSystem.local(additionalProviders: [altoolProvider])
+    }
+    private var system = LocalSystem.local()
+    
+    private static func _developerDirectory() -> Absolute {
+        let system = LocalSystem.local()
+        let defaultDir: Absolute = "/Applications/Xcode.app/Contents/Developer"
+        do {
+            let xcrun = try system.task(named: "xcrun").dematerialize()
+            xcrun.arguments.append(contentsOf: ["xcode-select", "-p"])
+            xcrun.enableReadableOutputDataCapturing()
+            try system.execute(xcrun).assertSuccess()
+            guard let developerDirectory = xcrun.trimmedOutput else {
+                return defaultDir
+            }
+            return Absolute(developerDirectory)
+        } catch {
+            return defaultDir
+        }
+    }
+    
     // MARK: - Helper
     let fixturesDir = Absolute(URL(fileURLWithPath: #file).deletingLastPathComponent().appendingPathComponent("Fixtures"))
-    let system = LocalSystem.local()
     let fs = LocalFileSystem()
     var credentials: Credentials = Credentials(username: "", password: "")
     struct Credentials { let username: String; let password: String }
@@ -57,13 +82,12 @@ final class XCBuildTests: XCTestCase {
         let projectRoot = fixturesDir.appending("highwayiostest_objc")
         let projectUrl = projectRoot.appending("highwayiostest.xcodeproj")
 
-        var options = TestOptions()
+        var options = BuildOptions()
         options.project = projectUrl
         options.scheme = "highwayiostest"
         
         let xcbuild = XCBuild(system: system, fileSystem: LocalFileSystem(), ui: Terminal.shared)
-        let result = try xcbuild.buildAndTest(using: options)
-        print(result)
+        try xcbuild.build(using: options, executeTests: true)
     }
     
     func testArchive_and_Export_using_object_plist() throws {

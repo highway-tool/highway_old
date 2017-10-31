@@ -6,7 +6,7 @@ import Terminal
 public final class LocalSystem {
     // MARK: - Properties
     private let executor: TaskExecutor
-    var executableProvider: ExecutableProvider
+    public var executableProvider: ExecutableProvider
     private let fileSystem: FileSystem
     
     // MARK: - Init
@@ -17,9 +17,13 @@ public final class LocalSystem {
     }
     
     /// Local System
-    public class func local() -> LocalSystem {
+    public class func local(additionalProviders providers: [ExecutableProvider] = []) -> LocalSystem {
+        let provider = SystemExecutableProvider.local()
+        providers.forEach {
+            provider.add($0)
+        }
         return LocalSystem(executor: SystemExecutor(ui: Terminal.shared),
-                           executableProvider: SystemExecutableProvider.local(),
+                           executableProvider: provider,
                            fileSystem: LocalFileSystem())
     }
 }

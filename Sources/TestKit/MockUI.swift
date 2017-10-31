@@ -1,9 +1,11 @@
 import Terminal
 
 public class MockUI: UI {
+    
     public init() {}
     public func message(_ text: String) {}
     public func success(_ text: String) {}
+    public func warn(_ text: String) { }
     public func important(_ text: String) {}
     public func verbose(_ text: String) {}
     public func error(_ text: String) {}

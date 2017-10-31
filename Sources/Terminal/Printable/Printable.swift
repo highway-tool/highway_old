@@ -1,11 +1,11 @@
 import Foundation
 
 public protocol Printable {
-    func printableString(with options: Print.Options) -> String
+    func printableString(with options: Print.Options) -> Text
 }
 
 public protocol Printer {
-    func string(with options: Print.Options) -> String
+    func string(with options: Print.Options) -> Text
 }
 
 public enum Print {

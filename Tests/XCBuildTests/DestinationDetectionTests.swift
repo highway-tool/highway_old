@@ -4,7 +4,7 @@ import XCTest
 
 final class DestinationDetectionTests: XCTestCase {
     func test1() throws {
-        let destinations = try Destination.destinations(xcbuildOutput: fixture1)
+        let destinations = Destination.destinations(xcbuildOutput: fixture1)
         guard destinations.count == 2 else {
             XCTFail("wrong count")
             return
@@ -14,12 +14,12 @@ final class DestinationDetectionTests: XCTestCase {
     }
     
     func test2() throws {
-        let destinations = try Destination.destinations(xcbuildOutput: fixture2)
+        let destinations = Destination.destinations(xcbuildOutput: fixture2)
         XCTAssertTrue(destinations.isEmpty)
     }
     
     func test3() throws {
-        let destinations = try Destination.destinations(xcbuildOutput: fixture3)
+        let destinations = Destination.destinations(xcbuildOutput: fixture3)
         guard destinations.count == 2 else {
             XCTFail("wrong count")
             return
@@ -29,12 +29,12 @@ final class DestinationDetectionTests: XCTestCase {
     }
     
     func testEmptyInput() throws {
-        let destinations = try Destination.destinations(xcbuildOutput: "")
+        let destinations = Destination.destinations(xcbuildOutput: "")
         XCTAssertTrue(destinations.isEmpty)
     }
     
     func testGarbageInput() throws {
-        let destinations = try Destination.destinations(xcbuildOutput: "dssdlk salkdjalskdklasdj a\nfddfdsfdsfdsfsdf334829748927489232\nnnnn")
+        let destinations = Destination.destinations(xcbuildOutput: "dssdlk salkdjalskdklasdj a\nfddfdsfdsfdsfsdf334829748927489232\nnnnn")
         XCTAssertTrue(destinations.isEmpty)
     }
 }

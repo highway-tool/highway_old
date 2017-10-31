@@ -1,5 +1,4 @@
 import Foundation
-import Terminal
 import Arguments
 
 infix operator ==>
@@ -18,7 +17,7 @@ open class _Highway<T: RawRepresentable> where T.RawValue == String {
     // MARK: - Properties
     private var _highways = OrderedDictionary<String, Raw<T>>()
     public var onError: ErrorHandler?
-    public var onEmptyCommand: EmptyHandler?
+    public var onEmptyCommand: EmptyHandler? = { }
     public var onUnrecognizedCommand: UnrecognizedCommandHandler?
     public var verbose = false
     public var descriptions: [HighwayDescription] {
@@ -85,7 +84,7 @@ open class _Highway<T: RawRepresentable> where T.RawValue == String {
     /// - Parameter error: An error to be passed to the error handler
     private func _reportError(_ error: Error) {
         guard let errorHandler = onError else {
-            Terminal.shared.log("ERROR: \(error.localizedDescription)")
+            print("[ERROR] \(error.localizedDescription)")
             return
         }
         errorHandler(error)

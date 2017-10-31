@@ -27,7 +27,7 @@ final class TaskTests: XCTestCase {
         XCTAssertEqual(process.currentDirectoryPath, currentDirectoryUrl.path)
 
         XCTAssertNotNil(process.arguments)
-        XCTAssertEqual(process.arguments ?? [], arguments.all)
+        XCTAssertEqual(process.arguments ?? [], arguments.all.processArguments)
         XCTAssertTrue((process.environment?.contains { (key, value) in
             return key == "test" && value == "value"
         }) ?? false)

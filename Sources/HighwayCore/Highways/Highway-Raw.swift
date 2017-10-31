@@ -9,11 +9,11 @@ extension _Highway {
         public var name: String
         public var usage: String?
         public var dependencies = [T]()
-        var body: HighwayBody?
         public var result: Any?
         public var description: HighwayDescription {
             return HighwayDescription(name: name, usage: usage)
         }
+        var body: HighwayBody?
         
         // MARK: - Init
         init(name: String, usage: String? = nil) {
@@ -22,29 +22,22 @@ extension _Highway {
         }
         
         // MARK: - Setting Bodies
-        public static func ==> (lhs: Raw, rhs: @escaping () throws -> ()) { lhs.execute(rhs) }
-        public static func ==> (lhs: Raw, rhs: @escaping () throws -> (Any)) { lhs.execute(rhs) }
-        public static func ==> (lhs: Raw, rhs: @escaping (Invocation) throws -> (Any?)) { lhs.execute(rhs) }
-        public static func ==> (lhs: Raw, rhs: @escaping (Invocation) throws -> ()) { lhs.execute(rhs) }
-        
-        // MARK: - Set Bodies
-        private func execute(_ newBody: @escaping () throws -> ()) {
-            body = { _ in try newBody() }
+        public static func ==> (lhs: Raw, rhs: @escaping () throws -> ()) {
+            lhs.body = { _ in try rhs() }
+        }
+        public static func ==> (lhs: Raw, rhs: @escaping () throws -> (Any)) {
+            lhs.body = { _ in try rhs() }
         }
         
-        private func execute(_ newBody: @escaping (_ invocation: Invocation) throws -> ()) {
-            body = {
-                try newBody($0)
+        public static func ==> (lhs: Raw, rhs: @escaping (Invocation) throws -> (Any?)) {
+            lhs.body = { try rhs($0) }
+        }
+        
+        public static func ==> (lhs: Raw, rhs: @escaping (Invocation) throws -> ()) {
+            lhs.body = {
+                try rhs($0)
                 return ()
             }
-        }
-        
-        private func execute(_ newBody: @escaping (_ invocation: Invocation) throws -> (Any?)) {
-            body = { try newBody($0) }
-        }
-        
-        private func execute(_ newBody: @escaping () throws -> (Any?)) {
-            body = { _ in try newBody() }
         }
         
         // MARK: - Set Dependencies
@@ -52,6 +45,8 @@ extension _Highway {
             dependencies = highways
             return self
         }
+        
+        // MARK: - Set Usage Descriptions
         public func usage(_ string: String) -> Raw {
             usage = string
             return self

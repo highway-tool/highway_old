@@ -96,7 +96,6 @@ public final class XCBuild {
         return env
     }
 
-    
     // MARK: - Archiving
     @discardableResult
     public func archive(using options: ArchiveOptions) throws -> Archive {
@@ -144,14 +143,18 @@ public final class XCBuild {
         return result
     }
     
-    // MARK: Testing
-    @discardableResult
-    public func buildAndTest(using options: TestOptions) throws -> TestReport {
+    // MARK: Build & Test
+    @available(*, deprecated)
+    public func buildAndTest(using options: BuildOptions) throws {
+        try build(using: options, executeTests: true)
+    }
+    
+    public func build(using options: BuildOptions, executeTests: Bool) throws {
         var options = options
         if options.destination == nil {
-            options.destination = try _buildAndTestDestination(using: options)
+            options.destination = try _buildDestination(using: options, executeTests: executeTests)
         }
-        let xcbuild = try _buildTestTask(using: options).dematerialize()
+        let xcbuild = try _buildTask(using: options, executeTests: executeTests).dematerialize()
         if let xcpretty = system.task(named: "xcpretty").value {
             xcbuild.output = .pipe()
             xcbuild.environment["NSUnbufferedIO"] = "YES" // otherwise xcpretty might not get everything
@@ -161,16 +164,15 @@ public final class XCBuild {
         } else {
             try system.execute(xcbuild).assertSuccess()
         }
-        return TestReport()
     }
     
     @discardableResult
-    public func _buildAndTestDestination(using options: TestOptions) throws -> Destination? {
+    public func _buildDestination(using options: BuildOptions, executeTests: Bool) throws -> Destination? {
         ui.message("Trying to detect destination…")
         var options = options
         options.destinationTimeout = 1
         options.destination = Destination.named("NoSuchName")
-        let xcbuild = try _buildTestTask(using: options).dematerialize()
+        let xcbuild = try _buildTask(using: options, executeTests: executeTests).dematerialize()
         xcbuild.enableErrorOutputCapturing()
         _ = system.execute(xcbuild)
         guard let output = xcbuild.trimmedErrorOutput else {
@@ -185,10 +187,9 @@ public final class XCBuild {
         return destination
     }
     
-    
-    private func _buildTestTask(using options: TestOptions) -> Result<Task, TaskCreationError> {
+    private func _buildTask(using options: BuildOptions, executeTests: Bool) -> Result<Task, TaskCreationError> {
         let result = _xcodebuild()
-        result.value?.arguments += options.arguments
+        result.value?.arguments += options.arguments(executeTests: executeTests)
         return result
     }
     
@@ -223,6 +224,7 @@ extension XCodeBuildOption: ArgumentsConvertible {
 private func _option(_ name: String, value: String? = nil) -> XCodeBuildOption {
     return XCodeBuildOption(name: name, value: value)
 }
+
 private func _intOption(_ name: String, value: Int?) -> XCodeBuildOption {
     let stringValue: String?
     if let value = value {
@@ -255,14 +257,17 @@ fileprivate extension ExportArchiveOptions {
     }
 }
 
-fileprivate extension TestOptions {
-    var arguments: Arguments {
+fileprivate extension BuildOptions {
+    func arguments(executeTests: Bool) -> Arguments {
         var args = Arguments.empty
         args += _option("scheme", value: scheme)
         args += _option("project", value: project?.path)
         args += _option("destination", value: destination.map { "\($0.asString)" })
         args += _intOption("destination-timeout", value: destinationTimeout)
-        args.append(["build", "test"])
+        args.append("build")
+        if executeTests {
+            args.append("test")
+        }
         return args
     }
 }

@@ -1,6 +1,9 @@
 import Foundation
 
 public struct SubText {
+    public static func <<<(left: SubText, right: SubText) -> Text {
+        return Text([left, right])
+    }
     // MARK: - Convenience
     public static let empty = SubText()
     public static let newline = SubText(.newline)

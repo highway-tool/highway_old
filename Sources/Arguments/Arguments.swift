@@ -9,6 +9,12 @@ public protocol Argument {
     var loggableDescription: String { get }
 }
 
+extension Array where Element == Argument {
+    public var processArguments: [String] {
+        return map { $0.processArgumentValue }
+    }
+}
+
 extension String: Argument {
     public var processArgumentValue: String {
         return self
@@ -63,13 +69,16 @@ public struct Arguments {
     public init(_ all: [String] = []) {
         append(contentsOf: all)
     }
+    
     public init(arguments: [Argument]) {
         self.all = arguments
     }
+    
     public init(argumentsArray: [Arguments]) {
         let allArray: [[Argument]] = argumentsArray.map { $0.all }
         self.all = Array(allArray.joined())
     }
+    
     public init(_ arg: String) {
         self.init([arg])
     }
@@ -81,12 +90,15 @@ public struct Arguments {
             self.all = all.filter { $0.processArgumentValue.isEmpty == false }
         }
     }
+    
     public var asProcessArguments: [String] {
         return all.processArgumentValues
     }
+    
     public var loggableValues: [String] {
         return all.loggableValues
     }
+    
     public var remaining: Arguments {
         return Arguments(arguments: Array(all.dropFirst()))
     }

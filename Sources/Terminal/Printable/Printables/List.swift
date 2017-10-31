@@ -5,10 +5,12 @@ public struct List {
     private init(lines: [Line] = []) {
         self.lines = lines
     }
+    
     public init(lines rawLines: [String] = []) {
         lines = []
         rawLines.forEach { self.append($0) }
     }
+    
     // MARK: - Properties
     private var lines: [Line]
     
@@ -19,7 +21,7 @@ public struct List {
 }
 
 extension List: Printable {
-    public func printableString(with options: Print.Options) -> String {
-        return lines.map { $0.printableString(with: options) }.joined(separator: .newline)
+    public func printableString(with options: Print.Options) -> Text {
+        return Text(lines.map { $0.printableString(with: options) }.joined(separator: Text.newline))
     }
 }

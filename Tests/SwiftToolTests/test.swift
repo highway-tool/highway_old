@@ -8,7 +8,7 @@ import SwiftTool
 private class Mock {
     init() {
         self.system = MockSystem()
-        self.swift = _SwiftTool(system: self.system)
+        self.swift = _SwiftTool(system: self.system, ui: MockUI())
     }
     let system: MockSystem
     let swift: _SwiftTool
@@ -27,7 +27,7 @@ final class SwiftBuildSystemTests: XCTestCase {
     // MARK: - Tests
     func testBuildFailsIfBinPathTaskFails() {
         mock.system.unhandledExecutionFallback = { task in
-            if task.arguments.all.contains("--build-path") {
+            if task.arguments.contains("--build-path") {
                 return .failure(.taskDidExitWithFailure(.failure))
             }
             return .success(())
@@ -42,7 +42,7 @@ final class SwiftBuildSystemTests: XCTestCase {
     
     func testBuildFailsIfBuildTaskFails() {
         mock.system.unhandledExecutionFallback = { task in
-            if task.arguments.all.contains("--build-path") {
+            if task.arguments.contains("--build-path") {
                 return .success(())
             }
             return .failure(.taskDidExitWithFailure(.failure))

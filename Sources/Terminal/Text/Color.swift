@@ -7,7 +7,7 @@ public enum Color: String {
     case white = "37m"
     case black = "30m"
     case grey = "30;1m"
-    
+    case magenta = "35m"
     // MARK: - Properties
     var terminalString: String {
         if case .none = self {

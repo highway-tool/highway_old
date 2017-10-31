@@ -2,14 +2,17 @@ import Foundation
 import Url
 import Task
 import Arguments
+import Terminal
 
 public class _SwiftTool {
     // MARK: - Properties
     public let system: System
-
+    public let ui: UI
+    
     // MARK: - Init
-    public init(system: System) {
+    public init(system: System, ui: UI) {
         self.system = system
+        self.ui = ui
     }
 }
 
@@ -23,13 +26,16 @@ extension _SwiftTool: SwiftTool {
     public func build(projectAt url: Absolute, options: SwiftOptions) throws -> Artifact {
         let buildTask = try system.swift(projectAt: url, options: options, additionalArguments: [])
         buildTask.enableReadableOutputDataCapturing()
+        buildTask.enableErrorOutputCapturing()
         let buildResult = system.execute(buildTask)
-        guard let log = buildTask.trimmedOutput else {
-            throw "Failed to get build log."
-        }
+        let log = buildTask.trimmedOutput ?? "<none>"
         if buildResult.error != nil {
-            throw "Failed to build. non-0 exit code. Build log: \(log)"
+            let errorOut = buildTask.trimmedErrorOutput ?? "<none>"
+            let message = "Failed to build. non-0 exit code. Build log: \(log)\n\nError Log: \n\n\(errorOut)"
+            ui.error(message)
+            throw message
         }
+
         try buildResult.assertSuccess()
         
         var pathOptions = options
@@ -38,11 +44,10 @@ extension _SwiftTool: SwiftTool {
         pathTask.enableReadableOutputDataCapturing()
         try system.execute(pathTask).assertSuccess()
         
-        guard let rawPath = pathTask.trimmedOutput else {
-            throw "bin path does not seem to be valid."
-        }
-        guard rawPath.isEmpty == false else {
-            throw "bin path does not seem to be valid."
+        guard let rawPath = pathTask.trimmedOutput, rawPath.isEmpty == false else {
+            let message = "Build failed because bin path does not seem to be valid."
+            ui.error(message)
+            throw message
         }
         
         return Artifact(binUrl: Absolute(rawPath), buildOutput: log)

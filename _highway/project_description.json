@@ -1,0 +1,1 @@
+[{"name":"test","usage":"Executed all unit and integration tests"},{"name":"build","usage":"Builds highway"},{"name":"release","usage":"Creates and publishes a new release"},{"name":"updateVersion","usage":"Writes the next tag to CurrentVersion.swift and tags the current state."},{"name":"release_then_upload","usage":"Creates and publishes a new release, then uploads it."}]

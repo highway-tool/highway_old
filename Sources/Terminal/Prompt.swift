@@ -31,3 +31,9 @@ private extension SubText {
         return SubText("❯", color: color)
     }
 }
+
+extension Prompt: Printable {
+    public func printableString(with options: Print.Options) -> Text {
+        return strings
+    }
+}

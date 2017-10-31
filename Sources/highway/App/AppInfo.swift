@@ -12,7 +12,7 @@ struct AppInfo: Printable {
     private let infos: [HighwayDescription]
     
     // MARK: - Printing
-    func printableString(with options: Print.Options) -> String {
+    func printableString(with options: Print.Options) -> Text {
         return infos.printableString(with: options)
     }
 }

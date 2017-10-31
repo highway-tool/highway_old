@@ -6,6 +6,7 @@ import FileSystem
 import Arguments
 import HighwayProject
 import POSIX
+import Task
 
 enum AppHighway: String {
     case initialize, help, generate, bootstrap, clean, version, self_update
@@ -28,7 +29,7 @@ final class App: Highway<AppHighway> {
     
     // MARK: - Running highway
     override func didFinishLaunching(with invocation: Invocation) {
-        ui.verbosePrint(VerboseInfo(version: CurrentVersion))
+        ui.verbosePrint(Diagnostics(version: CurrentVersion, system: system))
     }
     
     // MARK: - Private Highways
@@ -77,7 +78,7 @@ final class App: Highway<AppHighway> {
     private func _init() throws {
         try self.__ensureValidHomeBundle()
         let projectBundle = try HighwayBundle(creatingInParent: abscwd(), fileSystem: fileSystem, configuration: .standard, homeBundleConfiguration: .standard)
-        ui.success("Created at: \(projectBundle.xcodeprojectUrl.lastPathComponent). Try 'highway generate'.")
+        ui.success("Created at: \(projectBundle.url.lastPathComponent). Try 'highway generate'.")
     }
     
     private func _generate() throws {
