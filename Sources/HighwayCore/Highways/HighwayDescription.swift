@@ -14,6 +14,7 @@ public struct HighwayDescription: Codable {
     }
 }
 
+
 extension HighwayDescription {
     func text(indent: Text) -> Text {
         let usage = self.usage ?? "No usage text provided."
